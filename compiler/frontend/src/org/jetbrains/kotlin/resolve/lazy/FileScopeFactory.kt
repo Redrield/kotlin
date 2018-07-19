@@ -124,6 +124,16 @@ class FileScopeFactory(
         packageFragment: PackageFragmentDescriptor?,
         excludedImports: List<FqName>? = null
     ) = LazyImportResolver(
+        createImportResolutionComponents(indexedImports, aliasImportNames, excludedImports, trace, packageFragment)
+    )
+
+    private fun <I : KtImportInfo> createImportResolutionComponents(
+        indexedImports: IndexedImports<I>,
+        aliasImportNames: Collection<FqName>,
+        excludedImports: List<FqName>?,
+        trace: BindingTrace,
+        packageFragment: PackageFragmentDescriptor?
+    ) = ImportResolutionComponents(
         storageManager, qualifiedExpressionResolver, moduleDescriptor, platformToKotlinClassMap, languageVersionSettings,
         indexedImports, aliasImportNames concat excludedImports, trace, packageFragment,
         deprecationResolver
@@ -136,9 +146,7 @@ class FileScopeFactory(
         packageFragment: PackageFragmentDescriptor?,
         excludedImports: List<FqName>? = null
     ) = LazyImportResolverForKtImportDirective(
-        storageManager, qualifiedExpressionResolver, moduleDescriptor, platformToKotlinClassMap, languageVersionSettings,
-        indexedImports, aliasImportNames concat excludedImports, trace, packageFragment,
-        deprecationResolver
+        createImportResolutionComponents(indexedImports, aliasImportNames, excludedImports, trace, packageFragment)
     )
 
     private inner class FilesScopesBuilder(

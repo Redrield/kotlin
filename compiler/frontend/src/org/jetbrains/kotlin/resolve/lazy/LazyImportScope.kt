@@ -73,22 +73,28 @@ interface ImportForceResolver {
     fun forceResolveImport(importDirective: KtImportDirective)
 }
 
-open class LazyImportResolver<I : KtImportInfo>(
+class ImportResolutionComponents<I : KtImportInfo>(
     val storageManager: StorageManager,
-    private val qualifiedExpressionResolver: QualifiedExpressionResolver,
+    val qualifiedExpressionResolver: QualifiedExpressionResolver,
     val moduleDescriptor: ModuleDescriptor,
-    private val platformToKotlinClassMap: PlatformToKotlinClassMap,
+    val platformToKotlinClassMap: PlatformToKotlinClassMap,
     val languageVersionSettings: LanguageVersionSettings,
     val indexedImports: IndexedImports<I>,
-    excludedImportNames: Collection<FqName>,
-    protected val traceForImportResolve: BindingTrace,
-    private val packageFragment: PackageFragmentDescriptor?,
+    val excludedImportNames: Collection<FqName>,
+    val traceForImportResolve: BindingTrace,
+    val packageFragment: PackageFragmentDescriptor?,
     val deprecationResolver: DeprecationResolver
+)
+
+open class LazyImportResolver<I : KtImportInfo>(
+    internal val components: ImportResolutionComponents<I>
 ) {
-    private val importedScopesProvider = storageManager.createMemoizedFunctionWithNullableValues { directive: KtImportInfo ->
-        qualifiedExpressionResolver.processImportReference(
-            directive, moduleDescriptor, traceForImportResolve, excludedImportNames, packageFragment
-        )
+    private val importedScopesProvider = with(components) {
+        storageManager.createMemoizedFunctionWithNullableValues { directive: KtImportInfo ->
+            qualifiedExpressionResolver.processImportReference(
+                directive, moduleDescriptor, traceForImportResolve, excludedImportNames, packageFragment
+            )
+        }
     }
 
     fun <D : DeclarationDescriptor> selectSingleFromImports(
@@ -96,7 +102,7 @@ open class LazyImportResolver<I : KtImportInfo>(
         descriptorSelector: (ImportingScope, Name) -> D?
     ): D? {
         fun compute(): D? {
-            val imports = indexedImports.importsForName(name)
+            val imports = components.indexedImports.importsForName(name)
 
             var target: D? = null
             for (directive in imports) {
@@ -106,16 +112,16 @@ open class LazyImportResolver<I : KtImportInfo>(
             }
             return target
         }
-        return storageManager.compute(::compute)
+        return components.storageManager.compute(::compute)
     }
 
     fun <D : DeclarationDescriptor> collectFromImports(
         name: Name,
         descriptorsSelector: (ImportingScope, Name) -> Collection<D>
     ): Collection<D> {
-        return storageManager.compute {
+        return components.storageManager.compute {
             var descriptors: Collection<D>? = null
-            for (directive in indexedImports.importsForName(name)) {
+            for (directive in components.indexedImports.importsForName(name)) {
                 val descriptorsForImport = descriptorsSelector(getImportScope(directive), name)
                 descriptors = descriptors.concat(descriptorsForImport)
             }
@@ -129,58 +135,40 @@ open class LazyImportResolver<I : KtImportInfo>(
     }
 
     val allNames: Set<Name>? by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        indexedImports.imports.flatMapToNullable(hashSetOf()) { getImportScope(it).computeImportedNames() }
+        components.indexedImports.imports.flatMapToNullable(hashSetOf()) { getImportScope(it).computeImportedNames() }
     }
 
     fun definitelyDoesNotContainName(name: Name) = allNames?.let { name !in it } == true
 
     fun recordLookup(name: Name, location: LookupLocation) {
         if (allNames == null) return
-        indexedImports.importsForName(name).forEach {
+        components.indexedImports.importsForName(name).forEach {
             getImportScope(it).recordLookup(name, location)
         }
     }
 }
 
 class LazyImportResolverForKtImportDirective(
-    storageManager: StorageManager,
-    qualifiedExpressionResolver: QualifiedExpressionResolver,
-    moduleDescriptor: ModuleDescriptor,
-    platformToKotlinClassMap: PlatformToKotlinClassMap,
-    languageVersionSettings: LanguageVersionSettings,
-    indexedImports: IndexedImports<KtImportDirective>,
-    excludedImportNames: Collection<FqName>,
-    traceForImportResolve: BindingTrace,
-    packageFragment: PackageFragmentDescriptor?,
-    deprecationResolver: DeprecationResolver
+    components: ImportResolutionComponents<KtImportDirective>
 ) : LazyImportResolver<KtImportDirective>(
-    storageManager,
-    qualifiedExpressionResolver,
-    moduleDescriptor,
-    platformToKotlinClassMap,
-    languageVersionSettings,
-    indexedImports,
-    excludedImportNames,
-    traceForImportResolve,
-    packageFragment,
-    deprecationResolver
+    components
 ), ImportForceResolver {
 
-    private val forceResolveImportDirective = storageManager.createMemoizedFunction { directive: KtImportDirective ->
+    private val forceResolveImportDirective = components.storageManager.createMemoizedFunction { directive: KtImportDirective ->
         val scope = getImportScope(directive)
         if (scope is LazyExplicitImportScope) {
             val allDescriptors = scope.storeReferencesToDescriptors()
             PlatformClassesMappedToKotlinChecker.checkPlatformClassesMappedToKotlin(
-                platformToKotlinClassMap, traceForImportResolve, directive, allDescriptors
+                components.platformToKotlinClassMap, components.traceForImportResolve, directive, allDescriptors
             )
         }
 
         Unit
     }
 
-    private val forceResolveNonDefaultImportsTask: NotNullLazyValue<Unit> = storageManager.createLazyValue {
+    private val forceResolveNonDefaultImportsTask: NotNullLazyValue<Unit> = components.storageManager.createLazyValue {
         val explicitClassImports = HashMultimap.create<String, KtImportDirective>()
-        for (importInfo in indexedImports.imports) {
+        for (importInfo in components.indexedImports.imports) {
             forceResolveImport(importInfo)
 
             val scope = getImportScope(importInfo)
@@ -197,14 +185,14 @@ class LazyImportResolverForKtImportDirective(
         }
         for ((alias, import) in explicitClassImports.entries()) {
             if (alias.all { it == '_' }) {
-                traceForImportResolve.report(Errors.UNDERSCORE_IS_RESERVED.on(import))
+                components.traceForImportResolve.report(Errors.UNDERSCORE_IS_RESERVED.on(import))
             }
         }
         for (alias in explicitClassImports.keySet()) {
             val imports = explicitClassImports.get(alias)
             if (imports.size > 1) {
                 imports.forEach {
-                    traceForImportResolve.report(Errors.CONFLICTING_IMPORT.on(it, alias))
+                    components.traceForImportResolve.report(Errors.CONFLICTING_IMPORT.on(it, alias))
                 }
             }
         }
@@ -217,13 +205,13 @@ class LazyImportResolverForKtImportDirective(
     private fun checkResolvedImportDirective(importDirective: KtImportInfo) {
         if (importDirective !is KtImportDirective) return
         val importedReference = KtPsiUtil.getLastReference(importDirective.importedReference ?: return) ?: return
-        val importedDescriptor = traceForImportResolve.bindingContext.get(BindingContext.REFERENCE_TARGET, importedReference) ?: return
+        val importedDescriptor = components.traceForImportResolve.bindingContext.get(BindingContext.REFERENCE_TARGET, importedReference) ?: return
 
         val aliasName = importDirective.aliasName
 
         if (importedDescriptor is FunctionDescriptor && importedDescriptor.isOperator &&
             aliasName != null && OperatorConventions.isConventionName(Name.identifier(aliasName))) {
-            traceForImportResolve.report(Errors.OPERATOR_RENAMED_ON_IMPORT.on(importedReference))
+            components.traceForImportResolve.report(Errors.OPERATOR_RENAMED_ON_IMPORT.on(importedReference))
         }
     }
 
@@ -249,12 +237,12 @@ class LazyImportScope(
     private fun LazyImportResolver<*>.isClassifierVisible(descriptor: ClassifierDescriptor): Boolean {
         if (filteringKind == FilteringKind.ALL) return true
 
-        if (deprecationResolver.isHiddenInResolution(descriptor)) return false
+        if (components.deprecationResolver.isHiddenInResolution(descriptor)) return false
 
         val visibility = (descriptor as DeclarationDescriptorWithVisibility).visibility
         val includeVisible = filteringKind == FilteringKind.VISIBLE_CLASSES
         if (!visibility.mustCheckInImports()) return includeVisible
-        return Visibilities.isVisibleIgnoringReceiver(descriptor, moduleDescriptor) == includeVisible
+        return Visibilities.isVisibleIgnoringReceiver(descriptor, components.moduleDescriptor) == includeVisible
     }
 
     override fun getContributedClassifier(name: Name, location: LookupLocation): ClassifierDescriptor? {
@@ -295,16 +283,16 @@ class LazyImportScope(
         // we do not perform any filtering by visibility here because all descriptors from both visible/invisible filter scopes are to be added anyway
         if (filteringKind == FilteringKind.INVISIBLE_CLASSES) return listOf()
 
-        val storageManager = importResolver.storageManager
+        val storageManager = importResolver.components.storageManager
         if (secondaryImportResolver != null) {
-            assert(storageManager === secondaryImportResolver.storageManager) { "Multiple storage managers are not supported" }
+            assert(storageManager === secondaryImportResolver.components.storageManager) { "Multiple storage managers are not supported" }
         }
 
         return storageManager.compute {
             val result = linkedSetOf<DeclarationDescriptor>()
             val importedNames = if (secondaryImportResolver == null) null else hashSetOf<Name>()
 
-            for (directive in importResolver.indexedImports.imports) {
+            for (directive in importResolver.components.indexedImports.imports) {
                 val importedName = directive.importedName
                 if (importedName == null || nameFilter(importedName)) {
                     val newDescriptors =
@@ -320,7 +308,7 @@ class LazyImportScope(
             }
 
             secondaryImportResolver?.let { resolver ->
-                for (directive in resolver.indexedImports.imports) {
+                for (directive in resolver.components.indexedImports.imports) {
                     val newDescriptors =
                         resolver.getImportScope(directive).getContributedDescriptors(kindFilter, nameFilter, changeNamesForAliased)
 
