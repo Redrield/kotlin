@@ -23,10 +23,12 @@ import org.jetbrains.kotlin.backend.common.CodegenUtil;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
 import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper;
 import org.jetbrains.kotlin.descriptors.*;
+import org.jetbrains.kotlin.descriptors.annotations.Annotations;
 import org.jetbrains.kotlin.descriptors.impl.ClassDescriptorImpl;
 import org.jetbrains.kotlin.descriptors.impl.SimpleFunctionDescriptorImpl;
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil;
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation;
+import org.jetbrains.kotlin.load.kotlin.TypeSignatureMappingKt;
 import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.psi.KtFile;
@@ -34,13 +36,15 @@ import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt;
 import org.jetbrains.kotlin.resolve.jvm.diagnostics.JvmDeclarationOriginKt;
 import org.jetbrains.kotlin.storage.LockBasedStorageManager;
-import org.jetbrains.kotlin.types.KotlinType;
+import org.jetbrains.kotlin.types.*;
+import org.jetbrains.kotlin.types.typeUtil.TypeUtilsKt;
 import org.jetbrains.kotlin.util.OperatorNameConventions;
 import org.jetbrains.org.objectweb.asm.MethodVisitor;
 import org.jetbrains.org.objectweb.asm.Type;
 import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.jetbrains.kotlin.codegen.AsmUtil.NO_FLAG_PACKAGE_PRIVATE;
 import static org.jetbrains.kotlin.codegen.AsmUtil.asmTypeByFqNameWithoutInnerClasses;
@@ -102,6 +106,7 @@ public class SamWrapperCodegen {
                 CallableMemberDescriptor.Kind.SYNTHESIZED,
                 /*copyOverrides=*/ false
         );
+        //         SimpleFunctionDescriptor erasedCopy = createErasedCopy(samType.getOriginalAbstractMethod(), classDescriptor);
 
         ClassBuilder cv = state.getFactory().newVisitor(JvmDeclarationOriginKt.OtherOrigin(erasedInterfaceFunction), asmType, file);
         cv.defineClass(file,
@@ -133,6 +138,54 @@ public class SamWrapperCodegen {
 
         return asmType;
     }
+
+    /*
+    // We need to erase all usages of type parameters of the SAM class in the anonymous subclass, otherwise they do not make sense
+    // and Java reflection can behave inconsistently, for example return array of nulls in getGenericParameterTypes() or throw NPE
+    @NotNull
+    private static SimpleFunctionDescriptor createErasedCopy(
+            @NotNull SimpleFunctionDescriptor descriptor, @NotNull ClassDescriptor newOwner
+    ) {
+        FunctionDescriptor.CopyBuilder<? extends SimpleFunctionDescriptor> builder = descriptor.newCopyBuilder();
+        builder.setOwner(newOwner);
+        builder.setModality(Modality.FINAL);
+        builder.setVisibility(Visibilities.PUBLIC);
+        builder.setKind(CallableMemberDescriptor.Kind.SYNTHESIZED);
+        builder.setCopyOverrides(false);
+
+        TypeSubstitution substitution = new TypeSubstitution() {
+            @NotNull
+            @Override
+            public TypeProjection get(@NotNull KotlinType type) {
+                ClassifierDescriptor classifier = type.getConstructor().getDeclarationDescriptor();
+                if (classifier instanceof TypeParameterDescriptor) {
+                    return get(TypeSignatureMappingKt.getRepresentativeUpperBound((TypeParameterDescriptor) classifier));
+                }
+                else if (classifier instanceof ClassDescriptor) {
+                    List<TypeParameterDescriptor> parameters = type.getConstructor().getParameters();
+                    KotlinType erasedType = KotlinTypeFactory.simpleNotNullType(
+                            Annotations.Companion.getEMPTY(),
+                            (ClassDescriptor) classifier,
+                            CollectionsKt.mapIndexed(
+                                    type.getArguments(),
+                                    (index, argument) -> new StarProjectionImpl(parameters.get(index))
+                            )
+                    );
+                    return TypeUtilsKt.asTypeProjection(erasedType);
+                }
+                else {
+                    throw new IllegalStateException("Unknown classifier: " + classifier);
+                }
+            }
+        };
+
+        builder.setSubstitution(substitution);
+
+        SimpleFunctionDescriptor result = builder.build();
+        if (result == null) throw new AssertionError("Could not create erased view for: " + descriptor + " (into " + newOwner + ")");
+        return result;
+    }
+    */
 
     private void generateConstructor(Type ownerType, Type functionType, ClassBuilder cv) {
         MethodVisitor mv = cv.newMethod(JvmDeclarationOriginKt.OtherOrigin(samType.getJavaClassDescriptor()),

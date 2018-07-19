@@ -258,7 +258,7 @@ fun computeInternalName(
     return containerInternalName + "$" + name
 }
 
-private fun getRepresentativeUpperBound(descriptor: TypeParameterDescriptor): KotlinType {
+fun getRepresentativeUpperBound(descriptor: TypeParameterDescriptor): KotlinType {
     val upperBounds = descriptor.upperBounds
     assert(!upperBounds.isEmpty()) { "Upper bounds should not be empty: " + descriptor }
 
