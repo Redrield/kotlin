@@ -23,37 +23,28 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
             "inc" to "Increments this value.",
             "dec" to "Decrements this value.",
             "unaryPlus" to "Returns this value.",
-            "unaryMinus" to "Returns the negative of this value.")
+            "unaryMinus" to "Returns the negative of this value."
+        )
         internal val shiftOperators: Map<String, String> = mapOf(
             "shl" to "Shifts this value left by the [bitCount] number of bits.",
             "shr" to "Shifts this value right by the [bitCount] number of bits, filling the leftmost bits with copies of the sign bit.",
-            "ushr" to "Shifts this value right by the [bitCount] number of bits, filling the leftmost bits with zeros.",
-            "shiftLeft" to "Shifts this value left by the [bitCount] number of bits.",
-            "shiftRight" to "Shifts this value right by the [bitCount] number of bits, filling the leftmost bits with copies of the sign bit.",
-            "ushiftRight" to "Shifts this value right by the [bitCount] number of bits, filling the leftmost bits with zeros.")
+            "ushr" to "Shifts this value right by the [bitCount] number of bits, filling the leftmost bits with zeros."
+        )
         internal val bitwiseOperators: Map<String, String> = mapOf(
             "and" to "Performs a bitwise AND operation between the two values.",
             "or" to "Performs a bitwise OR operation between the two values.",
-            "xor" to "Performs a bitwise XOR operation between the two values.",
-            "bitAnd" to "Performs a bitwise AND operation between the two values.",
-            "bitOr" to "Performs a bitwise OR operation between the two values.",
-            "bitXor" to "Performs a bitwise XOR operation between the two values.")
-        internal val deprecatedOperatorMap: Map<String, String> = mapOf(
-            "shl" to "shiftLeft",
-            "shr" to "shiftRight",
-            "ushr" to "ushiftRight",
-            "and" to "bitAnd",
-            "or" to "bitOr",
-            "xor" to "bitXor")
+            "xor" to "Performs a bitwise XOR operation between the two values."
+        )
     }
+
     private val typeDescriptions: Map<PrimitiveType, String> = mapOf(
-            PrimitiveType.DOUBLE to "double-precision 64-bit IEEE 754 floating point number",
-            PrimitiveType.FLOAT to "single-precision 32-bit IEEE 754 floating point number",
-            PrimitiveType.LONG to "64-bit signed integer",
-            PrimitiveType.INT to "32-bit signed integer",
-            PrimitiveType.SHORT to "16-bit signed integer",
-            PrimitiveType.BYTE to "8-bit signed integer",
-            PrimitiveType.CHAR to "16-bit Unicode character"
+        PrimitiveType.DOUBLE to "double-precision 64-bit IEEE 754 floating point number",
+        PrimitiveType.FLOAT to "single-precision 32-bit IEEE 754 floating point number",
+        PrimitiveType.LONG to "64-bit signed integer",
+        PrimitiveType.INT to "32-bit signed integer",
+        PrimitiveType.SHORT to "16-bit signed integer",
+        PrimitiveType.BYTE to "8-bit signed integer",
+        PrimitiveType.CHAR to "16-bit Unicode character"
     )
 
     private fun primitiveConstants(type: PrimitiveType): List<Any> = when (type) {
@@ -158,12 +149,14 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
 
     private fun generateCompareTo(thisKind: PrimitiveType) {
         for (otherKind in PrimitiveType.onlyNumeric) {
-            out.println("""
+            out.println(
+                """
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
-     */""")
+     */"""
+            )
             out.print("    public ")
             if (otherKind == thisKind) out.print("override ")
             out.println("operator fun compareTo(other: ${otherKind.capitalized}): Int")
@@ -198,7 +191,7 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
         for (otherKind in PrimitiveType.onlyNumeric) {
             val returnType =
                 maxByDomainCapacity(thisKind, otherKind)
-                .let { if (it == PrimitiveType.CHAR) it else maxByDomainCapacity(it, PrimitiveType.INT) }
+                    .let { if (it == PrimitiveType.CHAR) it else maxByDomainCapacity(it, PrimitiveType.INT) }
             if (returnType == PrimitiveType.DOUBLE || returnType == PrimitiveType.FLOAT)
                 continue
             out.println("     /** Creates a range from this value to the specified [other] value. */")
@@ -211,7 +204,8 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
     private fun generateUnaryOperators(kind: PrimitiveType) {
         for ((name, doc) in unaryOperators) {
             val returnType = if (kind in listOf(PrimitiveType.SHORT, PrimitiveType.BYTE, PrimitiveType.CHAR) &&
-                                 name in listOf("unaryPlus", "unaryMinus")) "Int" else kind.capitalized
+                name in listOf("unaryPlus", "unaryMinus")
+            ) "Int" else kind.capitalized
             out.println("    /** $doc */")
             out.println("    public operator fun $name(): $returnType")
         }
@@ -221,27 +215,16 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
     private fun generateBitShiftOperators(className: String) {
         for ((name, doc) in shiftOperators) {
             out.println("    /** $doc */")
-            if (name in deprecatedOperatorMap.keys) {
-                val replacement = deprecatedOperatorMap[name]
-                out.println("    @Deprecated(\"Use $replacement(bitCount) instead\", ReplaceWith(\"$replacement(bitCount)\"), DeprecationLevel.WARNING)")
-                out.println("    public infix fun $name(bitCount: Int): $className")
-            } else {
-                out.println("    public operator fun $name(bitCount: Int): $className")
-            }
+            out.println("    public infix operator fun $name(bitCount: Int): $className")
         }
     }
+
     private fun generateBitwiseOperators(className: String, since: String?) {
         for ((name, doc) in bitwiseOperators) {
             out.println("    /** $doc */")
             since?.let { out.println("    @SinceKotlin(\"$it\")") }
 
-            if (name in deprecatedOperatorMap.keys) {
-                val replacement = deprecatedOperatorMap[name]
-                out.println("    @Deprecated(\"Use $replacement(other) instead\". ReplaceWith(\"$replacement(other)\"), DeprecationLevel.WARNING)")
-                out.println("    public infix fun $name(other: $className): $className")
-            } else {
-                out.println("    public operator fun $name(other: $className): $className")
-            }
+            out.println("    public infix operator fun $name(other: $className): $className")
         }
         out.println("    /** Inverts the bits in this value. */")
         since?.let { out.println("    @SinceKotlin(\"$it\")") }
@@ -256,8 +239,8 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
         }
     }
 
-    private fun maxByDomainCapacity(type1: PrimitiveType, type2: PrimitiveType): PrimitiveType
-            = if (type1.ordinal > type2.ordinal) type1 else type2
+    private fun maxByDomainCapacity(type1: PrimitiveType, type2: PrimitiveType): PrimitiveType =
+        if (type1.ordinal > type2.ordinal) type1 else type2
 
     private fun getOperatorReturnType(kind1: PrimitiveType, kind2: PrimitiveType): PrimitiveType {
         require(kind1 != PrimitiveType.BOOLEAN) { "kind1 must not be BOOLEAN" }

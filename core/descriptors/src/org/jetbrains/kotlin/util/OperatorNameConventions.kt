@@ -37,6 +37,10 @@ object OperatorNameConventions {
 
     @JvmField val AND = Name.identifier("and")
     @JvmField val OR = Name.identifier("or")
+    @JvmField val XOR = Name.identifier("xor")
+    @JvmField val SHL = Name.identifier("shl")
+    @JvmField val SHR = Name.identifier("shr")
+    @JvmField val USHR = Name.identifier("ushr")
 
     @JvmField val INC = Name.identifier("inc")
     @JvmField val DEC = Name.identifier("dec")
@@ -45,12 +49,12 @@ object OperatorNameConventions {
     @JvmField val NOT = Name.identifier("not")
 
     // TODO: Come up with better names for these functions
-    @JvmField val BIT_AND = Name.identifier("bitAnd")
-    @JvmField val BIT_OR = Name.identifier("bitOr")
-    @JvmField val BIT_XOR = Name.identifier("bitXor")
-    @JvmField val SHIFT_LEFT = Name.identifier("shiftLeft")
-    @JvmField val SHIFT_RIGHT = Name.identifier("shiftRight")
-    @JvmField val USHIFT_RIGHT = Name.identifier("ushiftRight")
+//    @JvmField val BIT_AND = Name.identifier("bitAnd")
+//    @JvmField val BIT_OR = Name.identifier("bitOr")
+//    @JvmField val BIT_XOR = Name.identifier("bitXor")
+//    @JvmField val SHIFT_LEFT = Name.identifier("shiftLeft")
+//    @JvmField val SHIFT_RIGHT = Name.identifier("shiftRight")
+//    @JvmField val USHIFT_RIGHT = Name.identifier("ushiftRight")
 
     @JvmField val UNARY_MINUS = Name.identifier("unaryMinus")
     @JvmField val UNARY_PLUS = Name.identifier("unaryPlus")
@@ -83,7 +87,7 @@ object OperatorNameConventions {
     internal val SIMPLE_UNARY_OPERATION_NAMES = setOf(UNARY_PLUS, UNARY_MINUS, NOT)
 
     @JvmField
-    val BINARY_OPERATION_NAMES = setOf(TIMES, PLUS, MINUS, DIV, MOD, REM, RANGE_TO, BIT_AND, BIT_OR, BIT_XOR, SHIFT_LEFT, SHIFT_RIGHT, USHIFT_RIGHT)
+    val BINARY_OPERATION_NAMES = setOf(TIMES, PLUS, MINUS, DIV, MOD, REM, RANGE_TO, AND, OR, XOR, SHL, SHR, USHR)
 
     @JvmField
     internal val ASSIGNMENT_OPERATIONS = setOf(TIMES_ASSIGN, DIV_ASSIGN, MOD_ASSIGN, REM_ASSIGN, PLUS_ASSIGN, MINUS_ASSIGN, AND_ASSIGN, OR_ASSIGN, XOR_ASSIGN, SHL_ASSIGN, SHR_ASSIGN, USHR_ASSIGN)
