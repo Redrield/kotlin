@@ -228,7 +228,7 @@ class GeneratePrimitives(out: PrintWriter) : BuiltInsSourceGenerator(out) {
         }
         out.println("    /** Inverts the bits in this value. */")
         since?.let { out.println("    @SinceKotlin(\"$it\")") }
-        out.println("    public fun inv(): $className")
+        out.println("    public operator fun inv(): $className")
         out.println()
     }
 

@@ -575,7 +575,7 @@ public class Int private constructor() : Number(), Comparable<Int> {
     /** Performs a bitwise XOR operation between the two values. */
     public infix operator fun xor(other: Int): Int
     /** Inverts the bits in this value. */
-    public fun inv(): Int
+    public operator fun inv(): Int
 
     public override fun toByte(): Byte
     public override fun toChar(): Char
@@ -778,7 +778,7 @@ public class Long private constructor() : Number(), Comparable<Long> {
     /** Performs a bitwise XOR operation between the two values. */
     public infix operator fun xor(other: Long): Long
     /** Inverts the bits in this value. */
-    public fun inv(): Long
+    public operator fun inv(): Long
 
     public override fun toByte(): Byte
     public override fun toChar(): Char

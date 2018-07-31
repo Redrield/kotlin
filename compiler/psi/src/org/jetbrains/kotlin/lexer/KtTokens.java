@@ -122,6 +122,7 @@ public interface KtTokens {
     KtSingleValueToken LTLT        = new KtSingleValueToken("LTLT", "<<");
     KtSingleValueToken GTGT        = new KtSingleValueToken("GTGT", ">>");
     KtSingleValueToken GTGTGT      = new KtSingleValueToken("GTGTGT", ">>>");
+    KtSingleValueToken TILDE       = new KtSingleValueToken("TILDE", "~");
     KtSingleValueToken LTLTEQ      = new KtSingleValueToken("LTLTEQ", "<<=");
     KtSingleValueToken GTGTEQ      = new KtSingleValueToken("GTGTEQ", ">>=");
     KtSingleValueToken GTGTGTEQ    = new KtSingleValueToken("GTGTGTEQ", ">>>=");
@@ -267,7 +268,7 @@ public interface KtTokens {
     TokenSet STRINGS = TokenSet.create(CHARACTER_LITERAL, REGULAR_STRING_PART);
     TokenSet OPERATIONS = TokenSet.create(AS_KEYWORD, AS_SAFE, IS_KEYWORD, IN_KEYWORD, DOT, PLUSPLUS, MINUSMINUS, EXCLEXCL, MUL, PLUS,
                                           MINUS, EXCL, DIV, PERC, LT, GT, LTEQ, GTEQ, EQEQEQ, EXCLEQEQEQ, EQEQ, EXCLEQ, ANDAND, OROR,
-                                          AMP, PIPE, CARET, AMPEQ, PIPEEQ, CARETEQ, LTLT, GTGT, GTGTGT, LTLTEQ, GTGTEQ, GTGTGTEQ,
+                                          AMP, PIPE, CARET, AMPEQ, PIPEEQ, CARETEQ, LTLT, GTGT, GTGTGT, TILDE, LTLTEQ, GTGTEQ, GTGTGTEQ,
                                           SAFE_ACCESS, ELVIS,
                                           RANGE, EQ, MULTEQ, DIVEQ, PERCEQ, PLUSEQ, MINUSEQ,
                                           NOT_IN, NOT_IS,

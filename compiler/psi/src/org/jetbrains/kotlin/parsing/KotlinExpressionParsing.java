@@ -75,7 +75,7 @@ public class KotlinExpressionParsing extends AbstractKotlinParsing {
 
     /*package*/ static final TokenSet EXPRESSION_FIRST = TokenSet.create(
             // Prefix
-            MINUS, PLUS, MINUSMINUS, PLUSPLUS,
+            MINUS, PLUS, MINUSMINUS, PLUSPLUS, TILDE,
             EXCL, EXCLEXCL, // Joining complex tokens makes it necessary to put EXCLEXCL here
             // Atomic
 
@@ -145,7 +145,7 @@ public class KotlinExpressionParsing extends AbstractKotlinParsing {
         POSTFIX(PLUSPLUS, MINUSMINUS, EXCLEXCL,
                 DOT, SAFE_ACCESS), // typeArguments? valueArguments : typeArguments : arrayAccess
 
-        PREFIX(MINUS, PLUS, MINUSMINUS, PLUSPLUS, EXCL) { // annotations
+        PREFIX(MINUS, PLUS, MINUSMINUS, PLUSPLUS, EXCL, TILDE) { // annotations
 
             @Override
             public void parseHigherPrecedence(KotlinExpressionParsing parser) {

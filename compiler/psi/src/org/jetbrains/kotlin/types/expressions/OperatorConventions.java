@@ -48,6 +48,7 @@ public class OperatorConventions {
     // If you add new unary, binary or assignment operators, add it to OperatorConventionNames as well
 
     public static final ImmutableBiMap<KtSingleValueToken, Name> UNARY_OPERATION_NAMES = ImmutableBiMap.<KtSingleValueToken, Name>builder()
+            .put(KtTokens.TILDE, INV)
             .put(KtTokens.PLUSPLUS, INC)
             .put(KtTokens.MINUSMINUS, DEC)
             .put(KtTokens.PLUS, UNARY_PLUS)
