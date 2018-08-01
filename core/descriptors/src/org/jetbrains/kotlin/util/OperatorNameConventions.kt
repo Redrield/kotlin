@@ -74,10 +74,10 @@ object OperatorNameConventions {
     // If you add new unary, binary or assignment operators, add it to OperatorConventions as well
 
     @JvmField
-    val UNARY_OPERATION_NAMES = setOf(INC, DEC, UNARY_PLUS, UNARY_MINUS, NOT, INV)
+    val UNARY_OPERATION_NAMES = setOf(INC, DEC, UNARY_PLUS, UNARY_MINUS, NOT)
 
     @JvmField
-    internal val SIMPLE_UNARY_OPERATION_NAMES = setOf(UNARY_PLUS, UNARY_MINUS, NOT)
+    internal val SIMPLE_UNARY_OPERATION_NAMES = setOf(UNARY_PLUS, UNARY_MINUS, NOT, INV)
 
     @JvmField
     val BINARY_OPERATION_NAMES = setOf(TIMES, PLUS, MINUS, DIV, MOD, REM, RANGE_TO, AND, OR, XOR, SHL, SHR, USHR)
